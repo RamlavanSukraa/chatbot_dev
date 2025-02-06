@@ -30,7 +30,7 @@ twilio_whatsapp_number = config['phone_number']
 someone_else_relationship = config['someone_else_relationship']
 patient_nationality_someone = config['patient_nationality_someone']
 someone_else_gender = config['someone_else_gender']
-
+add_family_patient = config['add_family_patient']
 # Booking_sid
 booking_options_sid = config['booking_options_sid']
 day_slot_sid = config['day_slot_sid']
@@ -81,7 +81,7 @@ def add_patient_flow_others(mobile_api: str, mobile_twilio: str, message: str = 
             message = client.messages.create(
                 from_=twilio_whatsapp_number,
                 to=to,
-                content_sid = "HX98746b6e5a2f2ee9957e8212b3a1d19c"
+                content_sid = add_family_patient
             )
 
             logger.info(f"Quick reply template sent to {to} with SID: {message.sid}")

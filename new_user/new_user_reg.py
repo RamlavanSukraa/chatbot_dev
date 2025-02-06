@@ -1,7 +1,7 @@
 # new_user/new_user_reg.py
 
 import requests
-from datetime import datetime
+from datetime import datetime, date
 from config import load_config
 from state.state_manager import user_registration_state
 from utils.logger import app_logger as logger
@@ -169,34 +169,29 @@ def handle_user_registration_flow(mobile_api: str, mobile_twilio: str, message: 
 
     # Step 3: Ask for Date of Birth
     elif state["step"] == "ask_dob":
+
         try:
-
             dob = message.strip()
-
-            # Check if the input is empty
-            if not dob:
-                raise ValueError("Input is empty")
-
-            # Normalize the date format by replacing '-' with '/'
             normalized_dob = dob.replace("-", "/")
+            logger.debug(f"DOB normalized: {normalized_dob}")
+            parsed_dob = datetime.strptime(normalized_dob, "%d/%m/%Y").date()
 
-            # Parse the visit date in DD/MM/YYYY format
-            dob_date = datetime.strptime(normalized_dob, "%d/%m/%Y").date()
+            if parsed_dob > date.today():
+                send_whatsapp_message(mobile_twilio, body="The date of birth cannot be in the future. Please provide a valid DOB (DD/MM/YYYY):")
+                logger.warning(f"DOB is in the future: {dob}")
+                return {"status": "error", "message": "DOB is in the future"}
 
-            # Ensure the date is not in the future
-            if dob_date > datetime.today().date():
-                raise ValueError("Date cannot be in the future")
+            age = date.today().year - parsed_dob.year - ((date.today().month, date.today().day) < (parsed_dob.month, parsed_dob.day))
 
-            # Validate realistic age (e.g., not older than 150 years)
-            age = datetime.today().year - dob_date.year - (
-                (datetime.today().month, datetime.today().day) < (dob_date.month, dob_date.day)
-                
-            )
-            if age > 150:
-                raise ValueError("Unrealistic age derived from the DOB")
 
-            # If all validations pass, update the state with formatted DOB
-            state["dob"] = dob_date.strftime("%Y/%m/%d")  # Store as YYYY/MM/DD
+            if age < 0 or age > 150:
+                send_whatsapp_message(mobile_twilio, body="The age derived from the DOB is not realistic. Please provide a valid DOB (DD/MM/YYYY):")
+                logger.warning(f"Unrealistic DOB age ({age} years): {dob}")
+                return {"status": "error", "message": "Unrealistic DOB age"}
+
+
+            formatted_dob = parsed_dob.strftime("%Y/%m/%d")
+            state["dob"] = formatted_dob
 
             state["step"] = "finalize_registration"
 
@@ -224,13 +219,11 @@ def handle_user_registration_flow(mobile_api: str, mobile_twilio: str, message: 
                 logger.error(f"User registration failed: {response.text}")
                 send_whatsapp_message(mobile_twilio, body=response_message)
                 return {"status": "error", "message": response_message}
+            
 
-        except ValueError as e:
-            # Handle invalid DOB format or unrealistic age
-            response_message = (
-                "Please enter your Date of Birth in DD/MM/YYYY format "
-            )
-            logger.warning(f"DOB validation failed: {e}")
+        except ValueError as ve:
+            logger.error(f"Invalid input provided: {ve}")
+            response_message = f"Invalid input provided: {ve}"
             send_whatsapp_message(mobile_twilio, body=response_message)
             return {"status": "error", "message": response_message}
 

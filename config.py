@@ -95,7 +95,8 @@ def load_config():
             'evening_slot_sid': config['content_sid']['evening_slot_sid'],
             'booking_details_sid': config['content_sid']['booking_details_sid'],
             'province_sid': config['content_sid']['province_sid'],
-            'user_address_confirmation': config['content_sid']['user_address_confirmation']
+            'user_address_confirmation': config['content_sid']['user_address_confirmation'],
+            'add_family_patient': config['content_sid']['add_family_patient']
         }
         
         # Combine all configurations
